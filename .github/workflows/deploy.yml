@@ -32,13 +32,13 @@ jobs:
         run: |
           docker save typingai | bzip2 | ssh -o StrictHostKeyChecking=no root@45.82.15.156 'bunzip2 | docker load'
 
-      # Step 5: Run or Restart Docker Container with Dynamic Port
+      # Step 5: Run or Restart Docker Container with Fixed Port Mapping
       - name: Run Container on Server
         run: |
           ssh -o StrictHostKeyChecking=no root@45.82.15.156 "
             docker stop typingai || true &&
             docker rm typingai || true &&
-            docker run -d -P \
+            docker run -d -p 1401:1401 \
               -e PORT=1401 \
               -e OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} \
               --restart unless-stopped --name typingai typingai
