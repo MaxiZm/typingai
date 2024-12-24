@@ -1,0 +1,45 @@
+name: Auto Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout code
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Step 2: Set up SSH for secure communication with the server
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.5.4
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      # Step 3: Build Docker Image with Environment Variables
+      - name: Build Docker Image
+        run: |
+          docker build \
+            --build-arg OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} \
+            -t typingai .
+
+      # Step 4: Push Docker Image to Server
+      - name: Push Docker Image to Server
+        run: |
+          docker save typingai | bzip2 | ssh -o StrictHostKeyChecking=no root@45.82.15.156 'bunzip2 | docker load'
+
+      # Step 5: Run or Restart Docker Container with Dynamic Port
+      - name: Run Container on Server
+        run: |
+          ssh -o StrictHostKeyChecking=no root@45.82.15.156 "
+            docker stop typingai || true &&
+            docker rm typingai || true &&
+            docker run -d -P \
+              -e PORT=1401 \
+              -e OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} \
+              --restart unless-stopped --name typingai typingai
+          "
