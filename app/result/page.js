@@ -86,6 +86,9 @@ function ResultContent() {
           <li>
             <strong>AI Text WPM:</strong> {result.aiMetrics.wpm}
           </li>
+          <li>
+            <strong>Equivalent WPM:</strong> {((result.aiMetrics.wpm * 2/3 + result.userMetrics.wpm/3) * (result.aiMetrics.accuracy/100)).toFixed(2)}
+          </li>
         </ul>
 
         <Link
