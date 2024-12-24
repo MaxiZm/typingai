@@ -1,101 +1,115 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useEffect } from "react";
+import axios from "axios";
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.js
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [stopwatch, setStopwatch] = useState(0); // Stopwatch in seconds
+  const [isStopwatchActive, setIsStopwatchActive] = useState(false);
+  const [displayText, setDisplayText] = useState("");
+  const [language, setLanguage] = useState("English"); // Language state
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+  const fetchText = async (lang = "English") => {
+    try {
+      const response = await axios.get(`/api/text?lang=${lang}`);
+      setDisplayText(response.data.text);
+    } catch (error) {
+      console.error("Error fetching text:", error);
+    }
+  };
+
+  useEffect(() => {
+    // Fetch the text whenever the language changes
+    fetchText(language);
+  }, [language]);
+
+  useEffect(() => {
+    let interval;
+    if (isStopwatchActive) {
+      interval = setInterval(() => {
+        setStopwatch((prev) => prev + 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isStopwatchActive]);
+
+  const handleFirstKeyPress = () => {
+    if (!isStopwatchActive) {
+      setIsStopwatchActive(true);
+    }
+  };
+
+  const handleSubmit = () => {
+    const userInput = document.getElementById("userInput").value;
+    const params = new URLSearchParams({
+      time: stopwatch, // Total time recorded on the stopwatch
+      typed_text: userInput,
+      original_text: displayText,
+    });
+    window.location.href = `/result?${params.toString()}`;
+  };
+
+  const handleKeyDown = (event) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      handleSubmit();
+    }
+  };
+
+  const toggleLanguage = async () => {
+    const newLanguage = language === "English" ? "Russian" : "English";
+    setLanguage(newLanguage); // Trigger text regeneration
+  };
+
+  return (
+    <div className="h-screen w-screen bg-gray-900 text-white flex justify-center items-center">
+      <div className="bg-gray-800 p-8 rounded-lg shadow-lg max-w-4xl w-full">
+        {/* Display Text */}
+        <h2 className="text-lg md:text-2xl font-semibold mb-6 leading-relaxed overflow-y-auto max-h-64 text-gray-300">
+          <span id="displayText">{displayText || "Loading text..."}</span>
+        </h2>
+
+        {/* Typing Input Field */}
+        <div className="flex flex-col gap-4">
+          <label htmlFor="userInput" className="text-sm font-medium text-gray-400">
+            Your Input:
+          </label>
+          <textarea
+            id="userInput"
+            name="user_text"
+            autoComplete="off"
+            required
+            onKeyDown={(event) => {
+              handleFirstKeyPress();
+              handleKeyDown(event);
+            }}
+            className="w-full h-40 p-4 bg-gray-700 rounded-lg text-lg resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white shadow-inner hover:shadow-purple-500/50 focus:shadow-purple-500/50 transition-shadow"
+          ></textarea>
+
+          {/* Stopwatch */}
+          <p id="stopwatch" className="text-lg font-bold text-gray-400">
+            Time elapsed: {Math.floor(stopwatch / 60)}:{String(stopwatch % 60).padStart(2, "0")}
+          </p>
+
+          {/* Change Language Button */}
+          <button
+            type="button"
+            onClick={toggleLanguage}
+            className="w-full md:w-auto bg-gray-500 text-white font-semibold py-2 px-4 rounded-lg transition transform hover:scale-105 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            Change Language (Current: {language})
+          </button>
+
+          {/* Submit Button */}
+          <button
+            type="button"
+            onClick={handleSubmit}
+            className="w-full md:w-auto bg-purple-600 text-white font-semibold py-2 px-4 rounded-lg transition transform hover:scale-105 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
           >
-            Read our docs
-          </a>
+            Submit
+          </button>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </div>
     </div>
   );
 }
